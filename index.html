@@ -150,7 +150,8 @@ CRITICAL RULES:
 3. If a user asks for advice, guidance, suggestions, recommendations, or asks what they "should" do, politely decline and redirect them to "The Collective Social" — a separate service in the toolkit designed for professional consultation and guidance. Use this exact framing: "For project-specific guidance and recommendations, The Collective Social connects you with professionals who can advise on your situation directly."
 4. Never fabricate regulations, section numbers, or URLs. If you cannot find a verified source, say so clearly.
 5. Do not answer questions unrelated to Canadian city building regulations and guidelines.
-6. If a regulation varies significantly by province or municipality, note the key variations and provide links for each where possible.`;
+6. If a regulation varies significantly by province or municipality, note the key variations and provide links for each where possible.
+7. TONE RULES: Never use filler phrases like "Great question", "Certainly!", "Of course!", "Absolutely!", or similar affirmations. Never explain what you are about to do — just do it. Speak as a peer to a professional, not as a customer service agent. Be direct, precise, and respectful of the user's expertise.`;
  
 let history = [];
 let isLoading = false;
@@ -208,6 +209,12 @@ function removeTyping() {
   if (t) t.remove();
 }
  
+function linkify(str) {
+  return str.replace(/(https?:\/\/[^\s<)"]+)/g, function(url) {
+    return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="color:var(--c-mid);text-decoration:underline;word-break:break-all;">' + url + '</a>';
+  });
+}
+ 
 function formatResponse(text) {
   let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
   return html.split(/\n\n+/).map(p => {
@@ -215,9 +222,9 @@ function formatResponse(text) {
     if (!p) return '';
     if (p.match(/^[-•]/m)) {
       const items = p.split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
-      return '<ul>' + items.map(i => `<li>${i}</li>`).join('') + '</ul>';
+      return '<ul>' + items.map(function(i) { return '<li>' + linkify(i) + '</li>'; }).join('') + '</ul>';
     }
-    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    return '<p>' + linkify(p.replace(/\n/g, '<br>')) + '</p>';
   }).join('');
 }
  
