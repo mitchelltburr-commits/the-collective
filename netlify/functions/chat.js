@@ -16,6 +16,7 @@ exports.handler = async function(event) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
+        stream: true,
         system: body.system,
         tools: [
           {
@@ -28,18 +29,29 @@ exports.handler = async function(event) {
       })
     });
  
-    const data = await response.json();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = '';
  
-    if (data.error) {
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify(data)
-      };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+ 
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+ 
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+            fullText += parsed.delta.text;
+          }
+        } catch(e) {}
+      }
     }
- 
-    const textBlocks = (data.content || []).filter(b => b.type === 'text');
-    const text = textBlocks.map(b => b.text).join('\n');
  
     return {
       statusCode: 200,
@@ -48,7 +60,7 @@ exports.handler = async function(event) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({
-        content: [{ type: 'text', text }]
+        content: [{ type: 'text', text: fullText }]
       })
     };
  
