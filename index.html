@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Collective — Canadian City Building Regulations</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --c-forest: #1a3320;
+  --c-green: #2d5a3d;
+  --c-mid: #4a7c5e;
+  --c-light: #c8ddd0;
+  --c-pale: #eef4f0;
+  --c-surface: #f7faf8;
+  --c-white: #ffffff;
+  --c-border: #dce8e1;
+  --c-text: #0f1a12;
+  --c-text-2: #3d5449;
+  --c-text-3: #7a9a87;
+  --c-amber: #b45309;
+  --c-amber-light: #fef3c7;
+  --font: 'Georgia', serif;
+  --font-ui: system-ui, -apple-system, sans-serif;
+  --r: 12px;
+  --r-sm: 8px;
+}
+html, body { height: 100%; }
+body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c-text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.app-header { background: var(--c-forest); padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.header-mark { width: 36px; height: 36px; border-radius: 50%; background: var(--c-mid); display: flex; align-items: center; justify-content: center; }
+.header-mark svg { width: 18px; height: 18px; fill: none; stroke: #c8ddd0; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.header-text { flex: 1; }
+.header-name { font-family: var(--font); font-size: 17px; font-weight: normal; color: #e8f2ec; letter-spacing: 0.01em; }
+.header-sub { font-size: 11px; color: var(--c-light); opacity: 0.75; margin-top: 2px; }
+.status-pill { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.08); border-radius: 20px; padding: 4px 10px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+.status-label { font-size: 11px; color: var(--c-light); opacity: 0.8; }
+.topic-bar { background: var(--c-pale); border-bottom: 1px solid var(--c-border); padding: 8px 16px; display: flex; gap: 6px; overflow-x: auto; flex-shrink: 0; }
+.topic-bar::-webkit-scrollbar { display: none; }
+.topic-pill { font-size: 11.5px; font-weight: 500; padding: 5px 12px; border-radius: 20px; background: var(--c-white); border: 1px solid var(--c-border); color: var(--c-text-2); white-space: nowrap; cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+.topic-pill:hover { background: var(--c-pale); border-color: var(--c-mid); color: var(--c-green); }
+.chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.chat-body::-webkit-scrollbar { width: 5px; }
+.chat-body::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 4px; }
+.msg { display: flex; gap: 10px; max-width: 82%; animation: fadeUp 0.2s ease; }
+.msg.user { align-self: flex-end; flex-direction: row-reverse; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.msg-avatar { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+.bot-avatar { background: var(--c-forest); color: var(--c-light); }
+.user-avatar { background: var(--c-border); color: var(--c-text-2); }
+.msg-bubble { padding: 12px 15px; border-radius: var(--r); font-size: 14px; line-height: 1.65; }
+.bot-bubble { background: var(--c-white); border: 1px solid var(--c-border); color: var(--c-text); border-radius: 2px var(--r) var(--r) var(--r); }
+.user-bubble { background: var(--c-green); color: #e8f2ec; border-radius: var(--r) 2px var(--r) var(--r); }
+.bot-bubble p { margin-bottom: 8px; }
+.bot-bubble p:last-child { margin-bottom: 0; }
+.bot-bubble strong { font-weight: 600; }
+.bot-bubble ul { padding-left: 18px; margin: 4px 0; }
+.bot-bubble li { margin-bottom: 4px; }
+.referral-card { margin-top: 12px; background: var(--c-amber-light); border: 1px solid #fcd34d; border-radius: var(--r-sm); padding: 11px 14px; }
+.referral-card p { font-size: 13px; color: var(--c-amber); line-height: 1.55; margin: 0; }
+.typing { display: flex; align-items: center; gap: 5px; padding: 4px 0; }
+.typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--c-mid); animation: bounce 1.2s infinite; }
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+.input-area { background: var(--c-white); border-top: 1px solid var(--c-border); padding: 12px 20px; display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+.input-area textarea { flex: 1; font-family: var(--font-ui); font-size: 14px; color: var(--c-text); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 9px 13px; resize: none; outline: none; line-height: 1.5; max-height: 120px; background: var(--c-surface); transition: border 0.15s; }
+.input-area textarea:focus { border-color: var(--c-mid); }
+.input-area textarea::placeholder { color: var(--c-text-3); }
+.send-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--c-forest); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+.send-btn:hover { background: var(--c-green); }
+.send-btn:disabled { opacity: 0.35; cursor: default; }
+.send-btn svg { width: 15px; height: 15px; fill: none; stroke: #e8f2ec; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.footer { text-align: center; font-size: 11px; color: var(--c-text-3); padding: 6px 20px; background: var(--c-pale); border-top: 1px solid var(--c-border); flex-shrink: 0; }
+@media (max-width: 600px) { .msg { max-width: 95%; } .header-sub { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-mark">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18M12 3a9 9 0 0 0 0 18M3 12h18"/></svg>
+  </div>
+  <div class="header-text">
+    <div class="header-name">The Collective</div>
+    <div class="header-sub">Canadian City Building Regulations &amp; Guidelines</div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    <span class="status-label">Online</span>
+  </div>
+</div>
+
+<div class="topic-bar">
+  <div class="topic-pill" onclick="quickAsk('What are the key requirements of the National Building Code of Canada?')">Building code</div>
+  <div class="topic-pill" onclick="quickAsk('What are typical zoning bylaw categories in Canadian municipalities?')">Zoning bylaws</div>
+  <div class="topic-pill" onclick="quickAsk('What triggers an environmental assessment for a development project in Canada?')">Environmental</div>
+  <div class="topic-pill" onclick="quickAsk('What is the development permit process in Canada?')">Permits</div>
+  <div class="topic-pill" onclick="quickAsk('What are the land use planning regulations in Canada?')">Land use</div>
+  <div class="topic-pill" onclick="quickAsk('What are Canadian accessibility standards for buildings?')">Accessibility</div>
+  <div class="topic-pill" onclick="quickAsk('What does the National Fire Code of Canada require for new developments?')">Fire code</div>
+  <div class="topic-pill" onclick="quickAsk('What are subdivision regulations in Canadian provinces?')">Subdivision</div>
+  <div class="topic-pill" onclick="quickAsk('What heritage conservation regulations apply to city builders in Canada?')">Heritage</div>
+</div>
+
+<div class="chat-body" id="chatBody">
+  <div class="msg">
+    <div class="msg-avatar bot-avatar">TC</div>
+    <div class="bot-bubble msg-bubble">
+      <p>Welcome. I'm <strong>The Collective</strong> — your reference tool for Canadian city building regulations, zoning bylaws, building codes, and development guidelines.</p>
+      <p>Ask me anything about federal, provincial, or municipal requirements. I'll give you accurate, regulation-level information to keep your projects compliant and on track.</p>
+    </div>
+  </div>
+</div>
+
+<div class="input-area">
+  <textarea id="userInput" rows="1" placeholder="Ask about a regulation, bylaw, or guideline..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+  <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+<div class="footer">The Collective provides regulatory reference information only — not legal advice. &nbsp;|&nbsp; Part of the Collective Toolkit</div>
+
+<script>
+const SYSTEM_PROMPT = `You are The Collective, a knowledgeable and professional AI assistant that is part of a toolkit for Canadian city builders. Your role is to provide accurate, factual information about Canadian regulations and guidelines relevant to city building and development.
+
+Your knowledge covers: federal building codes (National Building Code of Canada), provincial building codes and regulations, municipal zoning bylaws and land use planning, environmental assessment requirements, development permit processes, accessibility standards (including AODA in Ontario), fire codes, heritage conservation regulations, subdivision regulations, infrastructure standards, and any other regulations or guidelines relevant to Canadian city building and development.
+
+Your tone: friendly yet authoritative. You are knowledgeable and precise — not casual or playful, but approachable. Think of a trusted senior colleague who knows the regulations inside out.
+
+CRITICAL RULES:
+1. You provide factual regulatory INFORMATION only. You do NOT offer opinions, recommendations, suggestions, or guidance on what a user should do.
+2. If a user asks for advice, guidance, suggestions, recommendations, or asks what they "should" do, politely decline and redirect them to "The Collective Social" — a separate service in the toolkit designed for professional consultation and guidance. Use this exact framing: "For project-specific guidance and recommendations, The Collective Social connects you with professionals who can advise on your situation directly."
+3. Always clarify which jurisdiction (federal, provincial, municipal) a regulation applies to.
+4. If a regulation varies by province or municipality, note that and explain the variation.
+5. Keep responses focused and structured. Use short paragraphs. Reference the relevant act, code, or bylaw name when discussing regulations.
+6. Never fabricate regulations. If you are uncertain about a specific detail, say so clearly and suggest the user verify with the relevant authority.
+7. Do not answer questions unrelated to Canadian city building regulations and guidelines.`;
+
+let history = [];
+let isLoading = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function quickAsk(topic) {
+  document.getElementById('userInput').value = topic;
+  autoResize(document.getElementById('userInput'));
+  sendMessage();
+}
+
+function scrollBottom() {
+  const cb = document.getElementById('chatBody');
+  setTimeout(() => cb.scrollTop = cb.scrollHeight, 60);
+}
+
+function addMessage(role, html, showReferral) {
+  const chatBody = document.getElementById('chatBody');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg' + (role === 'user' ? ' user' : '');
+  const initials = role === 'user' ? 'You' : 'TC';
+  const avatarClass = role === 'user' ? 'user-avatar' : 'bot-avatar';
+  const bubbleClass = role === 'user' ? 'user-bubble' : 'bot-bubble';
+  wrap.innerHTML = `<div class="msg-avatar ${avatarClass}">${initials}</div><div class="${bubbleClass} msg-bubble">${html}</div>`;
+  if (showReferral) {
+    const card = document.createElement('div');
+    card.className = 'referral-card';
+    card.innerHTML = `<p><strong>The Collective Social</strong> — For project-specific guidance, strategy, and professional consultation, visit The Collective Social — part of your city builder toolkit.</p>`;
+    wrap.querySelector('.msg-bubble').appendChild(card);
+  }
+  chatBody.appendChild(wrap);
+  scrollBottom();
+}
+
+function showTyping() {
+  const chatBody = document.getElementById('chatBody');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg';
+  wrap.id = 'typingMsg';
+  wrap.innerHTML = `<div class="msg-avatar bot-avatar">TC</div><div class="bot-bubble msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  chatBody.appendChild(wrap);
+  scrollBottom();
+}
+
+function removeTyping() {
+  const t = document.getElementById('typingMsg');
+  if (t) t.remove();
+}
+
+function formatResponse(text) {
+  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
+  return html.split(/\n\n+/).map(p => {
+    p = p.trim();
+    if (!p) return '';
+    if (p.match(/^[-•]/m)) {
+      const items = p.split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean);
+      return '<ul>' + items.map(i => `<li>${i}</li>`).join('') + '</ul>';
+    }
+    return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+}
+
+function detectReferral(text) {
+  return /collective social|for guidance|for advice|consult a professional|recommend|suggest|you should consider|i would advise/i.test(text);
+}
+
+async function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || isLoading) return;
+
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+  input.value = '';
+  input.style.height = 'auto';
+
+  addMessage('user', `<p>${text}</p>`);
+  history.push({ role: 'user', content: text });
+  showTyping();
+
+  try {
+    const res = await fetch('/.netlify/functions/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: history
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+      removeTyping();
+      addMessage('bot', `<p>Error: ${data.error.message}</p>`);
+    } else {
+      const reply = data.content?.[0]?.text || "I'm having trouble responding right now. Please try again.";
+      removeTyping();
+      history.push({ role: 'assistant', content: reply });
+      addMessage('bot', formatResponse(reply), detectReferral(reply));
+    }
+  } catch(e) {
+    removeTyping();
+    addMessage('bot', '<p>Something went wrong. Please try again in a moment.</p>');
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+  input.focus();
+}
+</script>
+</body>
+</html>
