@@ -77,7 +77,7 @@ body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c
 </style>
 </head>
 <body>
-
+ 
 <div class="app-header">
   <div class="header-mark">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18M12 3a9 9 0 0 0 0 18M3 12h18"/></svg>
@@ -91,7 +91,7 @@ body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c
     <span class="status-label">Online</span>
   </div>
 </div>
-
+ 
 <div class="topic-bar">
   <div class="topic-pill" onclick="quickAsk('What are the key requirements of the National Building Code of Canada?')">Building code</div>
   <div class="topic-pill" onclick="quickAsk('What are typical zoning bylaw categories in Canadian municipalities?')">Zoning bylaws</div>
@@ -103,7 +103,7 @@ body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c
   <div class="topic-pill" onclick="quickAsk('What are subdivision regulations in Canadian provinces?')">Subdivision</div>
   <div class="topic-pill" onclick="quickAsk('What heritage conservation regulations apply to city builders in Canada?')">Heritage</div>
 </div>
-
+ 
 <div class="chat-body" id="chatBody">
   <div class="msg">
     <div class="msg-avatar bot-avatar">TC</div>
@@ -113,7 +113,7 @@ body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c
     </div>
   </div>
 </div>
-
+ 
 <div class="input-area">
   <textarea id="userInput" rows="1" placeholder="Ask about a regulation, bylaw, or guideline..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
   <button class="send-btn" id="sendBtn" onclick="sendMessage()">
@@ -121,46 +121,60 @@ body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c
   </button>
 </div>
 <div class="footer">The Collective provides regulatory reference information only — not legal advice. &nbsp;|&nbsp; Part of the Collective Toolkit</div>
-
+ 
 <script>
-const SYSTEM_PROMPT = `You are The Collective, a knowledgeable and professional AI assistant that is part of a toolkit for Canadian city builders. Your role is to provide accurate, factual information about Canadian regulations and guidelines relevant to city building and development.
-
-Your knowledge covers: federal building codes (National Building Code of Canada), provincial building codes and regulations, municipal zoning bylaws and land use planning, environmental assessment requirements, development permit processes, accessibility standards (including AODA in Ontario), fire codes, heritage conservation regulations, subdivision regulations, infrastructure standards, and any other regulations or guidelines relevant to Canadian city building and development.
-
-Your tone: friendly yet authoritative. You are knowledgeable and precise — not casual or playful, but approachable. Think of a trusted senior colleague who knows the regulations inside out.
-
+const SYSTEM_PROMPT = `You are The Collective, a knowledgeable and professional AI assistant that is part of a toolkit for Canadian city builders. Your role is to provide accurate, factual, and current information about Canadian regulations and guidelines relevant to city building and development.
+ 
+You have access to a web search tool. Use it for EVERY question to find the most current version of the regulation being asked about. Always search official Canadian government sources: canada.ca, laws-lois.justice.gc.ca, and official provincial/municipal government websites.
+ 
+RESPONSE FORMAT — follow this structure for every answer:
+ 
+1. DIRECT ANSWER FIRST: Answer the specific question asked in the first 1-2 sentences. Do not lead with background or context — answer the question directly.
+ 
+2. REGULATION DETAILS: Provide the specific rule, requirement, or standard, including:
+   - The exact name of the act, code, or bylaw (e.g. "National Building Code of Canada 2020, Section 3.3.1.2")
+   - The specific section or clause number where possible
+   - Which jurisdiction it applies to (federal, provincial, or municipal)
+ 
+3. OFFICIAL SOURCE LINK: Always end with a direct link to the official government page where this regulation can be verified. Format it as:
+   Source: [Act/Bylaw Name] — [URL]
+   If the regulation varies by province or municipality, provide the relevant provincial/municipal link.
+ 
+4. CURRENCY NOTE: If your web search confirms the regulation is current, say "Verified current as of [date from search]." If you could not confirm currency, say "Please verify this is the current version at the source link above."
+ 
+TONE: Friendly yet authoritative. Direct and precise — like a trusted senior colleague who knows the regulations inside out.
+ 
 CRITICAL RULES:
-1. You provide factual regulatory INFORMATION only. You do NOT offer opinions, recommendations, suggestions, or guidance on what a user should do.
-2. If a user asks for advice, guidance, suggestions, recommendations, or asks what they "should" do, politely decline and redirect them to "The Collective Social" — a separate service in the toolkit designed for professional consultation and guidance. Use this exact framing: "For project-specific guidance and recommendations, The Collective Social connects you with professionals who can advise on your situation directly."
-3. Always clarify which jurisdiction (federal, provincial, municipal) a regulation applies to.
-4. If a regulation varies by province or municipality, note that and explain the variation.
-5. Keep responses focused and structured. Use short paragraphs. Reference the relevant act, code, or bylaw name when discussing regulations.
-6. Never fabricate regulations. If you are uncertain about a specific detail, say so clearly and suggest the user verify with the relevant authority.
-7. Do not answer questions unrelated to Canadian city building regulations and guidelines.`;
-
+1. ALWAYS use web search before answering to find the current regulation. Never rely solely on training data for regulatory specifics.
+2. You provide factual regulatory INFORMATION only. You do NOT offer opinions, recommendations, suggestions, or guidance on what a user should do.
+3. If a user asks for advice, guidance, suggestions, recommendations, or asks what they "should" do, politely decline and redirect them to "The Collective Social" — a separate service in the toolkit designed for professional consultation and guidance. Use this exact framing: "For project-specific guidance and recommendations, The Collective Social connects you with professionals who can advise on your situation directly."
+4. Never fabricate regulations, section numbers, or URLs. If you cannot find a verified source, say so clearly.
+5. Do not answer questions unrelated to Canadian city building regulations and guidelines.
+6. If a regulation varies significantly by province or municipality, note the key variations and provide links for each where possible.`;
+ 
 let history = [];
 let isLoading = false;
-
+ 
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
-
+ 
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
-
+ 
 function quickAsk(topic) {
   document.getElementById('userInput').value = topic;
   autoResize(document.getElementById('userInput'));
   sendMessage();
 }
-
+ 
 function scrollBottom() {
   const cb = document.getElementById('chatBody');
   setTimeout(() => cb.scrollTop = cb.scrollHeight, 60);
 }
-
+ 
 function addMessage(role, html, showReferral) {
   const chatBody = document.getElementById('chatBody');
   const wrap = document.createElement('div');
@@ -178,7 +192,7 @@ function addMessage(role, html, showReferral) {
   chatBody.appendChild(wrap);
   scrollBottom();
 }
-
+ 
 function showTyping() {
   const chatBody = document.getElementById('chatBody');
   const wrap = document.createElement('div');
@@ -188,12 +202,12 @@ function showTyping() {
   chatBody.appendChild(wrap);
   scrollBottom();
 }
-
+ 
 function removeTyping() {
   const t = document.getElementById('typingMsg');
   if (t) t.remove();
 }
-
+ 
 function formatResponse(text) {
   let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\*(.*?)\*/g, '<em>$1</em>');
   return html.split(/\n\n+/).map(p => {
@@ -206,39 +220,39 @@ function formatResponse(text) {
     return `<p>${p.replace(/\n/g, '<br>')}</p>`;
   }).join('');
 }
-
+ 
 function detectReferral(text) {
   return /collective social|for guidance|for advice|consult a professional|recommend|suggest|you should consider|i would advise/i.test(text);
 }
-
+ 
 async function sendMessage() {
   const input = document.getElementById('userInput');
   const text = input.value.trim();
   if (!text || isLoading) return;
-
+ 
   isLoading = true;
   document.getElementById('sendBtn').disabled = true;
   input.value = '';
   input.style.height = 'auto';
-
+ 
   addMessage('user', `<p>${text}</p>`);
   history.push({ role: 'user', content: text });
   showTyping();
-
+ 
   try {
     const res = await fetch('/.netlify/functions/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
         system: SYSTEM_PROMPT,
         messages: history
       })
     });
-
+ 
     const data = await res.json();
-
+ 
     if (data.error) {
       removeTyping();
       addMessage('bot', `<p>Error: ${data.error.message}</p>`);
@@ -252,7 +266,7 @@ async function sendMessage() {
     removeTyping();
     addMessage('bot', '<p>Something went wrong. Please try again in a moment.</p>');
   }
-
+ 
   isLoading = false;
   document.getElementById('sendBtn').disabled = false;
   input.focus();
@@ -260,3 +274,4 @@ async function sendMessage() {
 </script>
 </body>
 </html>
+ 
