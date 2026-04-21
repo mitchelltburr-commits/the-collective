@@ -63,6 +63,8 @@ body { font-family: var(--font-ui); background: var(--c-surface); color: var(--c
 .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--c-mid); animation: bounce 1.2s infinite; }
 .typing span:nth-child(2) { animation-delay: 0.2s; }
 .typing span:nth-child(3) { animation-delay: 0.4s; }
+.typing-wrap { display: flex; align-items: center; gap: 10px; }
+.typing-label { font-size: 12px; color: var(--c-text-3); font-style: italic; }
 @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
 .input-area { background: var(--c-white); border-top: 1px solid var(--c-border); padding: 12px 20px; display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
 .input-area textarea { flex: 1; font-family: var(--font-ui); font-size: 14px; color: var(--c-text); border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: 9px 13px; resize: none; outline: none; line-height: 1.5; max-height: 120px; background: var(--c-surface); transition: border 0.15s; }
@@ -194,19 +196,31 @@ function addMessage(role, html, showReferral) {
   scrollBottom();
 }
  
-function showTyping() {
+function showTyping(label) {
   const chatBody = document.getElementById('chatBody');
   const wrap = document.createElement('div');
   wrap.className = 'msg';
   wrap.id = 'typingMsg';
-  wrap.innerHTML = `<div class="msg-avatar bot-avatar">TC</div><div class="bot-bubble msg-bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+  const statusLabel = label || '';
+  wrap.innerHTML = '<div class="msg-avatar bot-avatar">TC</div><div class="bot-bubble msg-bubble"><div class="typing-wrap"><div class="typing"><span></span><span></span><span></span></div><span class="typing-label">' + statusLabel + '</span></div></div>';
   chatBody.appendChild(wrap);
   scrollBottom();
+}
+ 
+function updateTypingLabel(label) {
+  const el = document.querySelector('#typingMsg .typing-label');
+  if (el) el.textContent = label;
 }
  
 function removeTyping() {
   const t = document.getElementById('typingMsg');
   if (t) t.remove();
+}
+ 
+function streamIntoElement(el, text) {
+  const html = formatResponse(text);
+  el.innerHTML = html;
+  scrollBottom();
 }
  
 function linkify(str) {
@@ -242,17 +256,18 @@ async function sendMessage() {
   input.value = '';
   input.style.height = 'auto';
  
-  addMessage('user', `<p>${text}</p>`);
+  addMessage('user', '<p>' + text + '</p>');
   history.push({ role: 'user', content: text });
-  showTyping();
+  showTyping('Searching regulations...');
+ 
+  setTimeout(() => updateTypingLabel('Compiling response...'), 3000);
+  setTimeout(() => updateTypingLabel('Verifying sources...'), 6000);
  
   try {
     const res = await fetch('/.netlify/functions/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
         system: SYSTEM_PROMPT,
         messages: history
       })
@@ -262,12 +277,41 @@ async function sendMessage() {
  
     if (data.error) {
       removeTyping();
-      addMessage('bot', `<p>Error: ${data.error.message}</p>`);
+      addMessage('bot', '<p>Error: ' + data.error.message + '</p>');
     } else {
-      const reply = data.content?.[0]?.text || "I'm having trouble responding right now. Please try again.";
+      const reply = data.content?.[0]?.text || "Unable to retrieve a response. Please try again.";
       removeTyping();
       history.push({ role: 'assistant', content: reply });
-      addMessage('bot', formatResponse(reply), detectReferral(reply));
+ 
+      const chatBody = document.getElementById('chatBody');
+      const wrap = document.createElement('div');
+      wrap.className = 'msg';
+      const bubble = document.createElement('div');
+      bubble.className = 'bot-bubble msg-bubble';
+      wrap.innerHTML = '<div class="msg-avatar bot-avatar">TC</div>';
+      wrap.appendChild(bubble);
+      if (detectReferral(reply)) {
+        const card = document.createElement('div');
+        card.className = 'referral-card';
+        card.innerHTML = '<p><strong>The Collective Social</strong> — For project-specific guidance, strategy, and professional consultation, visit The Collective Social — part of your city builder toolkit.</p>';
+        bubble.appendChild(card);
+      }
+      chatBody.appendChild(wrap);
+ 
+      const words = reply.split(' ');
+      let i = 0;
+      function typeWords() {
+        if (i < words.length) {
+          const partial = words.slice(0, i + 1).join(' ');
+          const existing = bubble.querySelector('.referral-card');
+          bubble.innerHTML = formatResponse(partial);
+          if (existing) bubble.appendChild(existing);
+          i++;
+          scrollBottom();
+          setTimeout(typeWords, 18);
+        }
+      }
+      typeWords();
     }
   } catch(e) {
     removeTyping();
